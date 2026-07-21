@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Join Visualizer</title>
+<meta name="description" content="Interactive SQL JOIN teaching tool. Pick INNER, LEFT, RIGHT, FULL OUTER, or CROSS JOIN and see the Venn diagram, the SQL statement, and the live-computed result table. Runs entirely in your browser, no external dependencies.">
+<link rel="canonical" href="https://0xelitesystem.github.io/sql-join-visualizer/">
+<meta property="og:title" content="SQL Join Visualizer">
+<meta property="og:description" content="Pick a join type and see the Venn diagram, the SQL, and the result table computed live from editable sample data. All client-side.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://0xelitesystem.github.io/sql-join-visualizer/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SQL Join Visualizer",
+  "description": "Interactive SQL JOIN teaching tool. Pick a join type and see the Venn diagram, the generated SQL, and the result table computed live from editable sample data.",
+  "url": "https://0xelitesystem.github.io/sql-join-visualizer/",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "0xelitesystem", "url": "https://elitesystem.ai" }
+}
+</script>
+<style>
+:root {
+  --bg: #fafaf6;
+  --surface: #ffffff;
+  --ink: #0a1d1e;
+  --ink-soft: #2c4a4c;
+  --rule: #c8d4d3;
+  --teal: #0f5c60;
+  --teal-deep: #0a4548;
+  --gold: #b07d2a;
+  --gold-deep: #8a611f;
+  --ok: #1a5c2e;
+  --warn: #8a5a00;
+  --err: #8b1a1a;
+  --code-bg: #f0ebe1;
+  --left-hue: #2660a8;
+  --right-hue: #b03d8f;
+  --match-hue: #3a6b1f;
+  --venn-fill: rgba(15, 92, 96, 0.35);
+  --venn-idle: rgba(15, 92, 96, 0.05);
+}
+[data-theme="dark"] {
+  --bg: #0c1c1d;
+  --surface: #14292a;
+  --ink: #e8ebe6;
+  --ink-soft: #b0c0bd;
+  --rule: #2a4042;
+  --teal: #4ab4ba;
+  --teal-deep: #6dc8ce;
+  --gold: #d4a155;
+  --gold-deep: #e6b876;
+  --ok: #6dd380;
+  --warn: #d4a155;
+  --err: #e88080;
+  --code-bg: #0a1718;
+  --left-hue: #6da8e0;
+  --right-hue: #d97ab8;
+  --match-hue: #8ec870;
+  --venn-fill: rgba(74, 180, 186, 0.4);
+  --venn-idle: rgba(74, 180, 186, 0.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  line-height: 1.55;
+}
+.wrap { max-width: 1100px; margin: 0 auto; }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 2px solid var(--teal);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--teal);
+}
+.tag {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+  color: var(--gold-deep);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="dark"] .tag { color: var(--gold); }
+.theme-btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.theme-btn:hover { border-color: var(--teal); color: var(--teal); }
+.lede {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.75rem;
+  max-width: 65ch;
+}
+.section {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 3px;
+}
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.85rem;
+}
+.join-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+button {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 2px;
+}
+button:hover { border-color: var(--teal); }
+button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.join-btn[aria-pressed="true"] {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--surface);
+  font-weight: 600;
+}
+[data-theme="dark"] .join-btn[aria-pressed="true"] { color: var(--bg); }
+.explain {
+  margin-top: 0.85rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.table-card h3 {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.table-card.left-side h3 { color: var(--left-hue); }
+.table-card.right-side h3 { color: var(--right-hue); }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.82rem;
+}
+th, td {
+  border: 1px solid var(--rule);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+th {
+  background: var(--code-bg);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td[contenteditable] { min-width: 3ch; cursor: text; }
+td[contenteditable]:focus { outline: 2px solid var(--teal); outline-offset: -1px; background: var(--code-bg); }
+.row-del {
+  border: none;
+  background: transparent;
+  color: var(--err);
+  font-size: 0.8rem;
+  padding: 0.1rem 0.35rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.row-del:hover { border: none; text-decoration: underline; }
+td.del-cell { border: none; background: transparent; padding: 0 0 0 0.25rem; }
+.add-row {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.7rem;
+}
+.hint {
+  font-size: 0.78rem;
+  color: var(--gold-deep);
+  margin-top: 0.75rem;
+}
+[data-theme="dark"] .hint { color: var(--gold); }
+.venn-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.venn-box { flex: 0 0 auto; }
+svg .circle-outline {
+  fill: var(--venn-idle);
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+svg .region {
+  fill: transparent;
+  transition: fill 0.25s ease;
+}
+svg .region.on { fill: var(--venn-fill); }
+svg .venn-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  fill: var(--ink);
+}
+.cross-note {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  max-width: 34ch;
+}
+pre {
+  background: var(--code-bg);
+  padding: 0.85rem;
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--ink);
+}
+pre .kw { color: var(--teal); font-weight: 600; }
+[data-theme="dark"] pre .kw { color: var(--teal); }
+#result-table td.null-cell {
+  color: var(--ink-soft);
+  font-style: italic;
+  opacity: 0.75;
+}
+#result-table tr.orphan-left td:first-child { box-shadow: inset 3px 0 0 var(--left-hue); }
+#result-table tr.orphan-right td:first-child { box-shadow: inset 3px 0 0 var(--right-hue); }
+#result-table tr.matched td:first-child { box-shadow: inset 3px 0 0 var(--match-hue); }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.85rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.legend-item { display: flex; align-items: center; gap: 0.4rem; }
+.swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 1px;
+}
+.swatch-match { background: var(--match-hue); }
+.swatch-left { background: var(--left-hue); }
+.swatch-right { background: var(--right-hue); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.row-count {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+}
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+footer a { color: var(--teal); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  body { padding: 1rem 0.75rem; }
+  h1 { font-size: 1.4rem; }
+  .tables-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>SQL Join Visualizer</h1>
+    <div class="tag">See every join type, live</div>
+  </div>
+  <button class="theme-btn" id="theme-toggle" type="button">Dark</button>
+</header>
+
+<p class="lede">Pick a join type and watch three things update together: the Venn diagram, the SQL statement, and the actual result table computed from the sample data below. Edit any cell in the sample tables and the result recomputes instantly. Nothing leaves this page.</p>
+
+<div class="section">
+  <div class="section-title">Sample tables (click any cell to edit)</div>
+  <div class="tables-grid">
+    <div class="table-card left-side">
+      <h3>users (left table)</h3>
+      <table id="users-table" aria-label="Sample users table, editable">
+        <thead><tr><th scope="col">id</th><th scope="col">name</th><th scope="col"><span class="sr-only">remove</span></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="add-row" id="add-user" type="button">+ Add user row</button>
+    </div>
+    <div class="table-card right-side">
+      <h3>orders (right table)</h3>
+      <table id="orders-table" aria-label="Sample orders table, editable">
+        <thead><tr><th scope="col">id</th><th scope="col">user_id</th><th scope="col">item</th><th scope="col"><span class="sr-only">remove</span></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="add-row" id="add-order" type="button">+ Add order row</button>
+    </div>
+  </div>
+  <div class="hint">The sample data includes a user with no orders (Carol) and an order whose user_id matches no user (user_id 9). That is exactly where the join types differ.</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Join type</div>
+  <div class="join-buttons" role="group" aria-label="Choose a join type">
+    <button class="join-btn" type="button" data-join="inner" aria-pressed="true">INNER JOIN</button>
+    <button class="join-btn" type="button" data-join="left" aria-pressed="false">LEFT JOIN</button>
+    <button class="join-btn" type="button" data-join="right" aria-pressed="false">RIGHT JOIN</button>
+    <button class="join-btn" type="button" data-join="full" aria-pressed="false">FULL OUTER JOIN</button>
+    <button class="join-btn" type="button" data-join="cross" aria-pressed="false">CROSS JOIN</button>
+  </div>
+  <p class="explain" id="explain" aria-live="polite"></p>
+</div>
+
+<div class="section">
+  <div class="section-title">Diagram</div>
+  <div class="venn-row">
+    <div class="venn-box">
+      <svg width="260" height="160" viewBox="0 0 260 160" role="img" aria-labelledby="venn-desc">
+        <title id="venn-desc">Venn diagram of the selected join type</title>
+        <defs>
+          <clipPath id="clip-b"><circle cx="160" cy="78" r="58"></circle></clipPath>
+          <mask id="not-b">
+            <rect x="0" y="0" width="260" height="160" fill="white"></rect>
+            <circle cx="160" cy="78" r="58" fill="black"></circle>
+          </mask>
+          <mask id="not-a">
+            <rect x="0" y="0" width="260" height="160" fill="white"></rect>
+            <circle cx="100" cy="78" r="58" fill="black"></circle>
+          </mask>
+        </defs>
+        <circle class="circle-outline" cx="100" cy="78" r="58"></circle>
+        <circle class="circle-outline" cx="160" cy="78" r="58"></circle>
+        <circle class="region" id="region-left" cx="100" cy="78" r="58" mask="url(#not-b)"></circle>
+        <circle class="region" id="region-inter" cx="100" cy="78" r="58" clip-path="url(#clip-b)"></circle>
+        <circle class="region" id="region-right" cx="160" cy="78" r="58" mask="url(#not-a)"></circle>
+        <text class="venn-label" x="52" y="18">users</text>
+        <text class="venn-label" x="172" y="18">orders</text>
+      </svg>
+    </div>
+    <div class="cross-note" id="venn-note"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">SQL</div>
+  <pre id="sql-out"></pre>
+</div>
+
+<div class="section">
+  <div class="section-title">Result (computed live from the sample data)</div>
+  <table id="result-table" aria-label="Join result table">
+    <thead><tr>
+      <th scope="col">users.id</th><th scope="col">users.name</th>
+      <th scope="col">orders.id</th><th scope="col">orders.user_id</th><th scope="col">orders.item</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="row-count" id="row-count"></div>
+  <div class="legend">
+    <div class="legend-item"><span class="swatch swatch-match"></span> matched on the join key</div>
+    <div class="legend-item"><span class="swatch swatch-left"></span> user with no order (NULLs on the right)</div>
+    <div class="legend-item"><span class="swatch swatch-right"></span> order with no user (NULLs on the left)</div>
+  </div>
+</div>
+
+<footer>
+  <div>SQL Join Visualizer. Open source, MIT licensed. <a href="https://github.com/0xelitesystem/sql-join-visualizer" target="_blank" rel="noopener">View source</a>.</div>
+  <div><a href="https://elitesystem.ai" target="_blank" rel="noopener">elitesystem.ai</a></div>
+</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// Theme toggle
+const themeBtn = $("theme-toggle");
+function setTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "Light" : "Dark";
+}
+themeBtn.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || "light";
+  setTheme(cur === "dark" ? "light" : "dark");
+});
+setTheme("light");
+
+// Initial sample data. Carol has no orders; order 104 points at user_id 9 which does not exist.
+const initialUsers = [
+  { id: "1", name: "Alice" },
+  { id: "2", name: "Bob" },
+  { id: "3", name: "Carol" },
+];
+const initialOrders = [
+  { id: "101", user_id: "1", item: "Keyboard" },
+  { id: "102", user_id: "1", item: "Mouse" },
+  { id: "103", user_id: "2", item: "Monitor" },
+  { id: "104", user_id: "9", item: "Webcam" },
+];
+
+const JOINS = {
+  inner: {
+    label: "INNER JOIN",
+    explain: "INNER JOIN keeps only the rows where the join key matches in both tables. Unmatched rows on either side are dropped.",
+    regions: ["inter"],
+    note: "Only the overlap: rows present in both tables via the join key.",
+    sql: "SELECT u.id, u.name, o.id AS order_id, o.item\nFROM users u\nINNER JOIN orders o ON o.user_id = u.id;",
+  },
+  left: {
+    label: "LEFT JOIN",
+    explain: "LEFT JOIN keeps every row from the left table, filling NULLs when there is no match.",
+    regions: ["left", "inter"],
+    note: "All of users, plus matching orders. Users without orders get NULLs.",
+    sql: "SELECT u.id, u.name, o.id AS order_id, o.item\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id;",
+  },
+  right: {
+    label: "RIGHT JOIN",
+    explain: "RIGHT JOIN keeps every row from the right table, filling NULLs when there is no match.",
+    regions: ["inter", "right"],
+    note: "All of orders, plus matching users. Orders without a user get NULLs.",
+    sql: "SELECT u.id, u.name, o.id AS order_id, o.item\nFROM users u\nRIGHT JOIN orders o ON o.user_id = u.id;",
+  },
+  full: {
+    label: "FULL OUTER JOIN",
+    explain: "FULL OUTER JOIN keeps every row from both tables, filling NULLs on whichever side has no match.",
+    regions: ["left", "inter", "right"],
+    note: "Everything from both tables. Unmatched rows on either side get NULLs.",
+    sql: "SELECT u.id, u.name, o.id AS order_id, o.item\nFROM users u\nFULL OUTER JOIN orders o ON o.user_id = u.id;",
+  },
+  cross: {
+    label: "CROSS JOIN",
+    explain: "CROSS JOIN pairs every row of the left table with every row of the right table. There is no join key, so the result has left rows times right rows.",
+    regions: ["left", "inter", "right"],
+    note: "Every combination of a user and an order, no key involved. Row count is users times orders.",
+    sql: "SELECT u.id, u.name, o.id AS order_id, o.item\nFROM users u\nCROSS JOIN orders o;",
+  },
+};
+
+let currentJoin = "inner";
+
+// Build editable table rows
+function makeCell(text) {
+  const td = document.createElement("td");
+  td.contentEditable = "true";
+  td.spellcheck = false;
+  td.textContent = text;
+  return td;
+}
+function makeDelCell(tbody, tr) {
+  const td = document.createElement("td");
+  td.className = "del-cell";
+  const btn = document.createElement("button");
+  btn.className = "row-del";
+  btn.type = "button";
+  btn.textContent = "x";
+  btn.setAttribute("aria-label", "Remove this row");
+  btn.addEventListener("click", () => { tr.remove(); render(); });
+  td.appendChild(btn);
+  return td;
+}
+function addUserRow(u) {
+  const tbody = $("users-table").querySelector("tbody");
+  const tr = document.createElement("tr");
+  tr.appendChild(makeCell(u.id));
+  tr.appendChild(makeCell(u.name));
+  tr.appendChild(makeDelCell(tbody, tr));
+  tbody.appendChild(tr);
+}
+function addOrderRow(o) {
+  const tbody = $("orders-table").querySelector("tbody");
+  const tr = document.createElement("tr");
+  tr.appendChild(makeCell(o.id));
+  tr.appendChild(makeCell(o.user_id));
+  tr.appendChild(makeCell(o.item));
+  tr.appendChild(makeDelCell(tbody, tr));
+  tbody.appendChild(tr);
+}
+initialUsers.forEach(addUserRow);
+initialOrders.forEach(addOrderRow);
+
+$("add-user").addEventListener("click", () => {
+  addUserRow({ id: "", name: "" });
+  render();
+});
+$("add-order").addEventListener("click", () => {
+  addOrderRow({ id: "", user_id: "", item: "" });
+  render();
+});
+
+// Read current data back out of the editable tables
+function readUsers() {
+  const rows = [];
+  $("users-table").querySelectorAll("tbody tr").forEach((tr) => {
+    const cells = tr.querySelectorAll("td[contenteditable]");
+    rows.push({ id: cells[0].textContent.trim(), name: cells[1].textContent.trim() });
+  });
+  return rows;
+}
+function readOrders() {
+  const rows = [];
+  $("orders-table").querySelectorAll("tbody tr").forEach((tr) => {
+    const cells = tr.querySelectorAll("td[contenteditable]");
+    rows.push({ id: cells[0].textContent.trim(), user_id: cells[1].textContent.trim(), item: cells[2].textContent.trim() });
+  });
+  return rows;
+}
+
+function keysEqual(a, b) {
+  if (a === "" || b === "") return false;
+  return a === b;
+}
+
+// The actual join engine. Returns rows of
+// { u: userRow or null, o: orderRow or null, kind: "matched" | "orphan-left" | "orphan-right" }
+function computeJoin(type, users, orders) {
+  const out = [];
+  if (type === "cross") {
+    for (const u of users) for (const o of orders) out.push({ u, o, kind: "matched" });
+    return out;
+  }
+  if (type === "inner" || type === "left" || type === "full") {
+    for (const u of users) {
+      const matches = orders.filter((o) => keysEqual(o.user_id, u.id));
+      if (matches.length > 0) {
+        for (const o of matches) out.push({ u, o, kind: "matched" });
+      } else if (type === "left" || type === "full") {
+        out.push({ u, o: null, kind: "orphan-left" });
+      }
+    }
+  }
+  if (type === "right") {
+    for (const o of orders) {
+      const matches = users.filter((u) => keysEqual(o.user_id, u.id));
+      if (matches.length > 0) {
+        for (const u of matches) out.push({ u, o, kind: "matched" });
+      } else {
+        out.push({ u: null, o, kind: "orphan-right" });
+      }
+    }
+  }
+  if (type === "full") {
+    for (const o of orders) {
+      const matches = users.filter((u) => keysEqual(o.user_id, u.id));
+      if (matches.length === 0) out.push({ u: null, o, kind: "orphan-right" });
+    }
+  }
+  return out;
+}
+
+function nullTd() {
+  const td = document.createElement("td");
+  td.className = "null-cell";
+  td.textContent = "NULL";
+  return td;
+}
+function valTd(v) {
+  const td = document.createElement("td");
+  td.textContent = v;
+  return td;
+}
+
+function highlightSql(sql) {
+  const esc = sql.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return esc.replace(/\b(SELECT|FROM|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL OUTER JOIN|CROSS JOIN|ON|AS)\b/g, '<span class="kw">$1</span>');
+}
+
+function render() {
+  const cfg = JOINS[currentJoin];
+  const users = readUsers();
+  const orders = readOrders();
+
+  // Explanation + Venn
+  $("explain").textContent = cfg.explain;
+  $("venn-note").textContent = cfg.note;
+  ["left", "inter", "right"].forEach((r) => {
+    $("region-" + r).classList.toggle("on", cfg.regions.includes(r));
+  });
+
+  // SQL
+  $("sql-out").innerHTML = highlightSql(cfg.sql);
+
+  // Result table
+  const rows = computeJoin(currentJoin, users, orders);
+  const tbody = $("result-table").querySelector("tbody");
+  tbody.innerHTML = "";
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.className = r.kind === "matched" ? "matched" : (r.kind === "orphan-left" ? "orphan-left" : "orphan-right");
+    if (r.u) { tr.appendChild(valTd(r.u.id)); tr.appendChild(valTd(r.u.name)); }
+    else { tr.appendChild(nullTd()); tr.appendChild(nullTd()); }
+    if (r.o) { tr.appendChild(valTd(r.o.id)); tr.appendChild(valTd(r.o.user_id)); tr.appendChild(valTd(r.o.item)); }
+    else { tr.appendChild(nullTd()); tr.appendChild(nullTd()); tr.appendChild(nullTd()); }
+    tbody.appendChild(tr);
+  }
+  const n = rows.length;
+  $("row-count").textContent = n === 1 ? "1 row" : n + " rows";
+}
+
+// Join type buttons
+document.querySelectorAll(".join-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentJoin = btn.dataset.join;
+    document.querySelectorAll(".join-btn").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+    render();
+  });
+});
+
+// Recompute whenever any editable cell changes
+$("users-table").addEventListener("input", render);
+$("orders-table").addEventListener("input", render);
+
+render();
+</script>
+</body>
+</html>
