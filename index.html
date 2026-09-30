@@ -40,7 +40,7 @@
   --err: #8b1a1a;
   --code-bg: #f0ebe1;
   --left-hue: #2660a8;
-  --right-hue: #b03d8f;
+  --right-hue: #9a3279;
   --match-hue: #3a6b1f;
   --venn-fill: rgba(15, 92, 96, 0.35);
   --venn-idle: rgba(15, 92, 96, 0.05);
@@ -348,6 +348,9 @@ footer a:hover { text-decoration: underline; }
 }
 :root { color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
+
+/* Footer links are underlined so they never rely on colour alone (WCAG 1.4.1). */
+footer a { text-decoration: underline; text-underline-offset: 0.15em; }
 </style>
 </head>
 <body>
