@@ -2,9 +2,17 @@
 
 An interactive teaching tool for SQL joins. Pick INNER, LEFT, RIGHT, FULL OUTER, or CROSS JOIN and see three things update together: a Venn diagram of what the join keeps, the generated SQL statement, and the actual result table computed live from editable sample data. Single HTML file, no external dependencies, works offline.
 
-## Live demo
+**Live demo:** https://0xelitesystem.github.io/sql-join-visualizer/
 
-https://0xelitesystem.github.io/sql-join-visualizer/
+## Use
+
+1. Pick a join: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN, or CROSS JOIN.
+2. Edit any cell in the users and orders tables, add rows with + Add user row or + Add order row, or remove a row with its remove button.
+3. Read the Venn diagram, the generated SQL, and the result table, which all recompute on every change.
+
+## Why this exists
+
+Join diagrams in most tutorials are static pictures, so they never show what happens to the row with no match. This tool computes the real result from data you can edit, in one HTML file with no tracking and no dependencies, released under the MIT license.
 
 ## Features
 
@@ -25,6 +33,21 @@ The two sample tables (`users` and `orders`) live in editable HTML cells. On eve
 ## Privacy
 
 Everything runs client-side in your browser. Nothing you type leaves the page, no requests are made, no analytics, no cookies. You can open DevTools and watch the network tab to confirm.
+
+If you use the theme toggle, your light or dark choice is saved in your browser's localStorage under the key `theme`. Nothing else is stored.
+
+## Run locally
+
+```
+git clone https://github.com/0xelitesystem/sql-join-visualizer
+cd sql-join-visualizer
+```
+
+Open `index.html` in a browser, or serve the folder with `python -m http.server` and visit http://localhost:8000.
+
+## Build
+
+No build step. The whole tool is one `index.html` file.
 
 ## More
 
